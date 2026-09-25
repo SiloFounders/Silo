@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SILO</title>
+<style>
+:root{--green:#33ff66;--green-dim:#1a9940;--bg:#050805;--red:#ff5c5c;}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{background:var(--bg);color:var(--green);font-family:'Courier New',monospace;display:flex;align-items:center;justify-content:center;padding:16px;
+  padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));}
+.crt{width:100%;max-width:680px;border:2px solid var(--green-dim);border-radius:10px;
+  background:radial-gradient(ellipse at center,#0a120a 0%,#030503 100%);
+  box-shadow:inset 0 0 40px rgba(51,255,102,.08),0 0 30px rgba(51,255,102,.15);padding:20px;}
+h1{font-size:1.8em;letter-spacing:.35em;text-align:center;margin:0 0 2px;text-shadow:0 0 6px rgba(51,255,102,.8);}
+.sub{text-align:center;color:var(--green-dim);font-size:.75em;margin-bottom:16px;letter-spacing:.1em;}
+.hidden{display:none!important;}
+label{display:block;font-size:.85em;margin-bottom:6px;color:var(--green-dim);}
+input{width:100%;background:#020402;border:1px solid var(--green-dim);color:var(--green);font-family:inherit;font-size:1em;padding:10px;border-radius:4px;outline:none;}
+input:focus{border-color:var(--green);box-shadow:0 0 6px rgba(51,255,102,.6);}
+.field{margin-bottom:14px;}
+button{font-family:inherit;background:#08130a;color:var(--green);border:1px solid var(--green-dim);border-radius:4px;padding:10px 14px;cursor:pointer;font-size:.85em;letter-spacing:.05em;}
+button:hover{background:var(--green);color:#031005;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+.btn-row button{flex:1;min-width:110px;}
+#authMsg{min-height:1.2em;font-size:.85em;margin-top:8px;color:var(--red);}
+#main-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--green-dim);padding-bottom:10px;margin-bottom:14px;}
+#main-header .who{font-size:.8em;color:var(--green-dim);}
+#credits{font-size:1.1em;font-weight:bold;text-shadow:0 0 6px rgba(51,255,102,.7);}
+.section-title{font-size:.75em;color:var(--green-dim);letter-spacing:.1em;margin:14px 0 6px;}
+.grid-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+@media (max-width:460px){.grid-buttons{grid-template-columns:repeat(2,1fr);}}
+.grid-buttons button{font-size:.75em;padding:8px 6px;}
+#log{height:120px;overflow-y:auto;border:1px solid var(--green-dim);border-radius:4px;padding:8px;background:#020402;font-size:.82em;margin-top:8px;white-space:pre-wrap;}
+#feed{height:220px;overflow-y:auto;border:1px solid var(--green-dim);border-radius:4px;padding:10px;background:#020402;font-size:.88em;}
+.msg{margin-bottom:8px;}
+.msg .meta{color:var(--green-dim);font-size:.72em;}
+.msg.me .meta{color:#7dffa0;}
+#composer{display:flex;gap:8px;margin-top:8px;}
+#msgInput{flex:1;}
+#adminBox{border:1px solid var(--red);border-radius:6px;padding:10px;margin-top:14px;}
+#adminBox h3{margin:0 0 8px;font-size:.85em;color:var(--red);letter-spacing:.08em;}
+.admin-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;font-size:.78em;flex-wrap:wrap;}
+.admin-row span{flex:1;min-width:70px;}
+.admin-row input{width:70px;padding:6px;}
+.admin-row select{padding:6px;background:#020402;color:var(--green);border:1px solid var(--green-dim);font-family:inherit;}
+.admin-row button{padding:6px 8px;font-size:.72em;}
+footer.note{text-align:center;margin-top:14px;font-size:.65em;color:var(--green-dim);letter-spacing:.08em;}
+#popupOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+#popupOverlay.hidden{display:none!important;}
+#popupBox{max-width:360px;width:100%;border:2px solid var(--green);border-radius:8px;background:#040a04;padding:18px;box-shadow:0 0 24px rgba(51,255,102,.5);}
+#popupBox h4{margin:0 0 8px;font-size:.85em;letter-spacing:.1em;color:var(--green);text-shadow:0 0 6px rgba(51,255,102,.7);}
+#popupBox p{margin:0 0 14px;font-size:.9em;white-space:pre-wrap;}
+#popupBox button{width:100%;}
+.inline-warn{font-size:.75em;color:var(--red);margin-top:6px;min-height:1.1em;}
+</style>
+</head>
+<body>
+<div class="crt">
+  <h1>SILO</h1>
+  <div class="sub">TERMINAL DE ACESSO // REDE SUBTERRÂNEA</div>
+  <div id="initStatus" style="text-align:center;font-size:.7em;color:var(--green-dim);margin-bottom:10px;">conectando...</div>
+
+  <!-- AUTH -->
+  <div id="auth">
+    <div class="field"><label>USUÁRIO</label><input id="u" type="text" autocomplete="off"></div>
+    <div class="field"><label>SENHA</label><input id="p" type="password" autocomplete="off"></div>
+    <div class="btn-row">
+      <button onclick="login()">▶ ENTRAR</button>
+      <button onclick="register()">+ CRIAR CONTA</button>
+    </div>
+    <div id="authMsg"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main" class="hidden">
+    <div id="main-header">
+      <div class="who">USUÁRIO: <span id="whoName"></span> — CARGO: <span id="whoRole"></span></div>
+      <div id="credits">CRÉDITOS: --</div>
+      <button onclick="logout()">SAIR</button>
+    </div>
+
+    <div class="section-title">PAINEL DO SILO</div>
+    <div class="grid-buttons">
+      <button id="btn-status" onclick="cmd('status')">STATUS</button>
+      <button id="btn-niveis" onclick="cmd('niveis')">O2 / CO2</button>
+      <button id="btn-portoes" onclick="cmd('portoes')">PORTÕES</button>
+      <button id="btn-alerta" onclick="cmd('alerta')">ALARME</button>
+      <button id="btn-registro" onclick="cmd('registro')">REGISTRO</button>
+      <button id="btn-limpar" onclick="cmd('limpar')">LIMPAR</button>
+    </div>
+    <div id="log"></div>
+
+    <div class="section-title">MENSAGEM PRIVADA (-10 créditos por mensagem)</div>
+    <div class="field" style="margin-bottom:8px;">
+      <label style="margin-bottom:4px;">ENVIAR PARA</label>
+      <select id="toUser" style="width:100%;background:#020402;border:1px solid var(--green-dim);color:var(--green);font-family:inherit;padding:8px;border-radius:4px;"></select>
+    </div>
+    <div id="feed"></div>
+    <div id="composer">
+      <input id="msgInput" type="text" placeholder="digite sua mensagem..." autocomplete="off">
+      <button onclick="sendMsg()">ENVIAR (-10)</button>
+    </div>
+    <div id="msgWarn" class="inline-warn"></div>
+
+    <div id="adminBox" class="hidden">
+      <h3>⚠ PAINEL DO CHEFE DE TI — AJUSTAR CRÉDITOS</h3>
+      <div id="adminList"></div>
+    </div>
+  </div>
+
+  <footer class="note">SILO OS v2.0 (Firebase) — sistema de contas e créditos próprio</footer>
+</div>
+
+<div id="popupOverlay" class="hidden">
+  <div id="popupBox">
+    <h4 id="popupTitle">📨 NOVA MENSAGEM</h4>
+    <p id="popupText"></p>
+    <button onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+// ====== CONFIGURAÇÃO DO FIREBASE ======
+// Substitua os valores abaixo pelos que o Firebase te deu ao
+// registrar o app Web (Configurações do projeto > Seus apps).
+const firebaseConfig = {
+  apiKey: "AIzaSyBAKQnLt2xR8xJKgFBTf1Nn9E1TFq1njNo",
+  authDomain: "silo-app-714cc.firebaseapp.com",
+  projectId: "silo-app-714cc",
+  storageBucket: "silo-app-714cc.firebasestorage.app",
+  messagingSenderId: "160410498049",
+  appId: "1:160410498049:web:36726c2dd13030a2dcbc00"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+// ========================================
+
+let myUser = null, myUnsub = null, myCredits = 0, currentRole = 'morador';
+let lastSeenTs = 0, firstFeedSnapshot = true, popupQueue = [], popupShowing = false;
+const ADMIN_USER = "chefe_ti";
+const ADMIN_DEFAULT_PASS = "22097";
+const SHERIFF_USER = "houstin";
+const SHERIFF_DEFAULT_PASS = "melanie";
+
+const ROLE_LABELS = {morador: "morador", sheriff: "xerife", admin: "chefe de ti"};
+const ROLE_PERMS = {
+  morador: ['status','niveis','registro','limpar'],
+  sheriff: ['status','niveis','portoes','alerta','registro','limpar'],
+  admin:   ['status','niveis','portoes','alerta','registro','limpar']
+};
+function applyRolePermissions(role){
+  currentRole = role || 'morador';
+  document.getElementById('whoRole').textContent = ROLE_LABELS[currentRole] || currentRole;
+  const allowed = ROLE_PERMS[currentRole] || ROLE_PERMS.morador;
+  ['status','niveis','portoes','alerta','registro','limpar'].forEach(fn=>{
+    const btn = document.getElementById('btn-'+fn);
+    if(!btn) return;
+    const ok = allowed.includes(fn);
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '.35';
+    btn.title = ok ? '' : 'função restrita ao seu cargo';
+  });
+}
+function queuePopup(text, title){
+  popupQueue.push({text, title: title || '📨 NOVA MENSAGEM'});
+  if(!popupShowing) showNextPopup();
+}
+function showNextPopup(){
+  if(popupQueue.length === 0){ popupShowing = false; return; }
+  popupShowing = true;
+  const item = popupQueue.shift();
+  document.getElementById('popupTitle').textContent = item.title;
+  document.getElementById('popupText').textContent = item.text;
+  document.getElementById('popupOverlay').classList.remove('hidden');
+}
+function closePopup(){
+  document.getElementById('popupOverlay').classList.add('hidden');
+  showNextPopup();
+}
+async function markSeen(){
+  lastSeenTs = Date.now();
+  if(myUser){ try{ await db.doc("accounts/"+myUser).update({lastSeenTs: lastSeenTs}); }catch(e){} }
+}
+
+function hash(str){
+  let h = 5381;
+  for(let i=0;i<str.length;i++){ h = ((h<<5)+h) + str.charCodeAt(i); h = h & h; }
+  return "h"+Math.abs(h).toString(16);
+}
+
+async function init(){
+  const initStatus = document.getElementById('initStatus');
+  let bootstrapWarning = '';
+  // bootstrap / sync admin account (chefe de TI)
+  try{
+    const ref = db.doc("accounts/"+ADMIN_USER);
+    const snap = await ref.get();
+    if(!snap.exists){
+      await ref.set({passwordHash: hash(ADMIN_DEFAULT_PASS), credits: 999999, role: "admin", createdAt: Date.now()});
+    } else {
+      await ref.update({passwordHash: hash(ADMIN_DEFAULT_PASS)});
+    }
+  }catch(e){
+    bootstrapWarning = 'aviso: erro ao conectar/gravar no Firestore (código: '+(e.code||e.message||'?')+'). Confira o firebaseConfig e as regras de segurança.';
+  }
+  // bootstrap conta do xerife
+  try{
+    const sref = db.doc("accounts/"+SHERIFF_USER);
+    const ssnap = await sref.get();
+    if(!ssnap.exists){
+      await sref.set({passwordHash: hash(SHERIFF_DEFAULT_PASS), credits: 100, role: "sheriff", createdAt: Date.now()});
+    }
+  }catch(e){}
+
+  initStatus.textContent = bootstrapWarning || 'conectado ao Firebase.';
+
+  const saved = safeGet('silo_user');
+  if(saved){ enterAs(saved); }
+}
+
+function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function safeDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+async function register(){
+  const u = document.getElementById('u').value.trim().toLowerCase();
+  const p = document.getElementById('p').value;
+  const msg = document.getElementById('authMsg');
+  if(!u || !p){ msg.style.color="var(--red)"; msg.textContent="preencha usuário e senha."; return; }
+  if(u === ADMIN_USER || u === SHERIFF_USER){ msg.style.color="var(--red)"; msg.textContent="esse nome de usuário é reservado."; return; }
+  const ref = db.doc("accounts/"+u);
+  const snap = await ref.get();
+  if(snap.exists){ msg.style.color="var(--red)"; msg.textContent="usuário já existe."; return; }
+  await ref.set({passwordHash: hash(p), credits: 100, role: "morador", createdAt: Date.now()});
+  msg.style.color="var(--green)"; msg.textContent="conta criada! entrando...";
+  setTimeout(()=>enterAs(u), 400);
+}
+
+async function login(){
+  const u = document.getElementById('u').value.trim().toLowerCase();
+  const p = document.getElementById('p').value;
+  const msg = document.getElementById('authMsg');
+  try{
+    const ref = db.doc("accounts/"+u);
+    const snap = await ref.get();
+    if(!snap.exists || snap.data().passwordHash !== hash(p)){
+      msg.style.color="var(--red)"; msg.textContent="usuário ou senha inválidos."; return;
+    }
+    enterAs(u);
+  }catch(e){
+    msg.style.color="var(--red)"; msg.textContent="erro ao acessar o banco: "+(e.code||e.message||'desconhecido');
+  }
+}
+
+async function enterAs(u){
+  myUser = u;
+  safeSet('silo_user', u);
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('main').classList.remove('hidden');
+  document.getElementById('whoName').textContent = u;
+  document.getElementById('authMsg').textContent = '';
+  firstFeedSnapshot = true;
+  let myRole = 'morador';
+  try{
+    const snap = await db.doc("accounts/"+u).get();
+    lastSeenTs = (snap.exists && snap.data().lastSeenTs) || 0;
+    myRole = (snap.exists && snap.data().role) || 'morador';
+  }catch(e){ lastSeenTs = 0; }
+  applyRolePermissions(myRole);
+  boot();
+  subscribeToMe();
+  loadAccountsList();
+  subscribeToNotifications();
+  if(u === SHERIFF_USER){
+    queuePopup('Boas vindas, Xerife!', '🤠 BOAS-VINDAS');
+  }
+}
+
+function logout(){
+  if(myUnsub) myUnsub();
+  if(accountsUnsub){ accountsUnsub(); accountsUnsub = null; }
+  if(convoUnsub){ convoUnsub(); convoUnsub = null; }
+  if(notifyUnsub){ notifyUnsub(); notifyUnsub = null; }
+  myUser = null;
+  safeDel('silo_user');
+  document.getElementById('main').classList.add('hidden');
+  document.getElementById('auth').classList.remove('hidden');
+  document.getElementById('u').value=''; document.getElementById('p').value='';
+  document.getElementById('adminBox').classList.add('hidden');
+}
+
+function subscribeToMe(){
+  myUnsub = db.doc("accounts/"+myUser).onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const d = snap.data();
+    myCredits = d.credits || 0;
+    document.getElementById('credits').textContent = "CRÉDITOS: "+myCredits;
+    if(d.role === 'admin'){
+      document.getElementById('adminBox').classList.remove('hidden');
+      subscribeAdmin();
+    }
+    applyRolePermissions(d.role || 'morador');
+  });
+}
+
+let adminSub = null;
+function subscribeAdmin(){
+  if(adminSub) return;
+  adminSub = db.collection("accounts").orderBy("createdAt","asc").limit(200).onSnapshot(snap=>{
+    const list = document.getElementById('adminList');
+    list.innerHTML = '';
+    (snap.docs||[]).forEach(d=>{
+      const data = d.data();
+      const uname = d.id;
+      const roleOpts = ['morador','sheriff','admin'].map(r=>
+        '<option value="'+r+'"'+(data.role===r?' selected':'')+'>'+r+'</option>').join('');
+      const row = document.createElement('div');
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<span>'+escapeHtml(uname)+'</span>'+
+        '<input type="number" value="'+(data.credits||0)+'" id="ci_'+uname+'">'+
+        '<select id="cr_'+uname+'">'+roleOpts+'</select>'+
+        '<button>SALVAR</button>'+
+        '<button>RESETAR SENHA</button>';
+      const btns = row.querySelectorAll('button');
+      btns[0].onclick = ()=> saveAccount(uname);
+      btns[1].onclick = ()=> resetPassword(uname);
+      list.appendChild(row);
+    });
+  });
+}
+
+async function saveAccount(uname){
+  const credVal = parseInt(document.getElementById('ci_'+uname).value, 10);
+  const roleVal = document.getElementById('cr_'+uname).value;
+  const update = {role: roleVal};
+  if(!isNaN(credVal)) update.credits = credVal;
+  await db.doc("accounts/"+uname).update(update);
+}
+
+async function resetPassword(uname){
+  const newPass = Math.random().toString(36).slice(2, 8);
+  await db.doc("accounts/"+uname).update({passwordHash: hash(newPass)});
+  queuePopup('Senha de "'+uname+'" redefinida para: '+newPass, '🔑 SENHA REDEFINIDA');
+}
+
+function boot(){
+  document.getElementById('log').innerHTML='';
+  print("> Bem-vindo, "+myUser+".");
+}
+function print(text){
+  const log = document.getElementById('log');
+  const div = document.createElement('div'); div.textContent = text;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+const responses = {
+  status:["SISTEMA: OPERACIONAL","ENERGIA: 87%"],
+  niveis:["OXIGÊNIO: 98.2%","VENTILAÇÃO: ATIVA"],
+  portoes:["PORTÃO PRINCIPAL: TRANCADO"],
+  alerta:["!!! ALARME ACIONADO !!!"],
+  registro:["ÚLTIMO ACESSO: "+ (()=>myUser)() ]
+};
+function cmd(name){
+  if(name==='limpar'){ boot(); return; }
+  const allowed = ROLE_PERMS[currentRole] || ROLE_PERMS.morador;
+  if(!allowed.includes(name)){
+    print("> ACESSO NEGADO: função restrita ao seu cargo ("+(ROLE_LABELS[currentRole]||currentRole)+").");
+    return;
+  }
+  print("> "+name.toUpperCase());
+  (responses[name]||["comando desconhecido"]).forEach(l=>print(l));
+}
+
+let accountsUnsub = null, convoUnsub = null, notifyUnsub = null;
+let knownAccounts = [];
+
+function convoId(a, b){ return [a,b].sort().join('::'); }
+
+function loadAccountsList(){
+  if(accountsUnsub) return;
+  accountsUnsub = db.collection("accounts").orderBy("createdAt","asc").limit(200).onSnapshot(snap=>{
+    knownAccounts = (snap.docs||[]).map(d=>d.id).filter(id=>id!==myUser);
+    const sel = document.getElementById('toUser');
+    const prev = sel.value;
+    sel.innerHTML = knownAccounts.map(id=>'<option value="'+id+'">'+id+'</option>').join('');
+    if(knownAccounts.includes(prev)){ sel.value = prev; }
+    else if(knownAccounts.length){ sel.value = knownAccounts[0]; }
+    subscribeToConvo();
+  });
+}
+
+function subscribeToConvo(){
+  const to = document.getElementById('toUser').value;
+  if(!to){ document.getElementById('feed').innerHTML = '<div style="color:var(--green-dim)">nenhum outro morador cadastrado ainda.</div>'; return; }
+  if(convoUnsub) convoUnsub();
+  const id = convoId(myUser, to);
+  convoUnsub = db.collection("messages").where("convo","==",id).orderBy("ts","asc").limit(100)
+    .onSnapshot(snap=>{ renderFeed(snap); });
+}
+
+function subscribeToNotifications(){
+  if(notifyUnsub) notifyUnsub();
+  notifyUnsub = db.collection("messages").where("to","==",myUser).orderBy("ts","asc").limit(200)
+    .onSnapshot(snap=>{
+      const docs = snap.docs||[];
+      if(firstFeedSnapshot){
+        firstFeedSnapshot = false;
+        const unseen = docs.filter(d=> (d.data().ts||0) > lastSeenTs);
+        if(unseen.length === 1){
+          queuePopup(unseen[0].data().user_from+': '+unseen[0].data().text);
+        } else if(unseen.length > 1){
+          queuePopup('Você tem '+unseen.length+' mensagens novas desde a última vez.');
+        }
+        markSeen();
+      } else if(snap.docChanges){
+        snap.docChanges().filter(c=>c.type==='added').forEach(c=>{
+          const m = c.doc.data();
+          queuePopup(m.user_from+': '+m.text);
+        });
+        markSeen();
+      }
+    });
+}
+
+function renderFeed(snap){
+  const feed = document.getElementById('feed');
+  feed.innerHTML='';
+  const docs = snap.docs||[];
+  if(docs.length===0){ feed.innerHTML = '<div style="color:var(--green-dim)">nenhuma mensagem nessa conversa ainda.</div>'; }
+  docs.forEach(d=>{
+    const m = d.data();
+    const mine = m.user_from === myUser;
+    const div = document.createElement('div');
+    div.className = 'msg'+(mine?' me':'');
+    const time = m.ts ? new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    div.innerHTML = '<div class="meta"></div><div class="txt"></div>';
+    div.querySelector('.meta').textContent = (mine?myUser+' (você)':m.user_from)+' — '+time;
+    div.querySelector('.txt').textContent = m.text||'';
+    feed.appendChild(div);
+  });
+  feed.scrollTop = feed.scrollHeight;
+}
+
+document.getElementById('toUser')?.addEventListener?.('change', subscribeToConvo);
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function sendMsg(){
+  const input = document.getElementById('msgInput');
+  const warn = document.getElementById('msgWarn');
+  const to = document.getElementById('toUser').value;
+  const text = input.value.trim();
+  warn.textContent = '';
+  if(!text || !myUser) return;
+  if(!to){ warn.textContent = 'escolha um destinatário.'; return; }
+  if(myCredits < 10){
+    warn.textContent = 'Créditos insuficientes (mínimo 10) para enviar.';
+    return;
+  }
+  input.value='';
+  await db.collection("messages").add({
+    user_from: myUser, user_to: to, convo: convoId(myUser, to), to: to, text: text, ts: Date.now()
+  });
+  await db.doc("accounts/"+myUser).update({credits: myCredits - 10});
+}
+document.getElementById('msgInput')?.addEventListener?.('keydown', e=>{ if(e.key==='Enter') sendMsg(); });
+
+init();
+</script>
+</body>
+</html>
